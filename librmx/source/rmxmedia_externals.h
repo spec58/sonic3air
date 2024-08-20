@@ -35,10 +35,10 @@
 		#include <SDL/SDL.h>
 	#endif
 #else
-	#include <SDL.h>
+	#include <SDL2/SDL.h>
 #endif
 
-
+#define RMX_LINUX_ENFORCE_GLES2 // For TSP
 // OpenGL
 #if defined(PLATFORM_WINDOWS)
 	#define ALLOW_LEGACY_OPENGL
@@ -46,8 +46,9 @@
 
 #elif defined(PLATFORM_LINUX)
 	#if defined(RMX_LINUX_ENFORCE_GLES2)	// Build option: Use OpenGL ES 2
-		#define ALLOW_LEGACY_OPENGL
+		//#define ALLOW_LEGACY_OPENGL
 		#define RMX_USE_GLES2
+		#define GL_GLEXT_PROTOTYPES
 		#include <GLES3/gl3.h>		// We need the ES 3 headers for e.g. glBindVertexArray
 		#include <GLES3/gl3ext.h>
 	#else

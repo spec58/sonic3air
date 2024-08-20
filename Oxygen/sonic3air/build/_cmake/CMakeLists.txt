@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.13)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+INCLUDE(FindPkgConfig)
 
 if (NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
@@ -8,14 +9,16 @@ endif()
 
 project(Sonic3AIR)
 
+add_compile_definitions(RMX_LINUX_ENFORCE_GLES2)
+
 
 # Determine whether to support discord integration
-set(USE_DISCORD true)
-if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
-	link_directories(/opt/vc/lib)	# Needed when building on Raspberry Pi
-	set(USE_DISCORD false)
-endif()
-message(STATUS "USE_DISCORD = ${USE_DISCORD}")
+#set(USE_DISCORD true)
+#if (UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
+#	link_directories(/opt/vc/lib)	# Needed when building on Raspberry Pi
+#	set(USE_DISCORD false)
+#endif()
+#message(STATUS "USE_DISCORD = ${USE_DISCORD}")
 
 
 
@@ -30,10 +33,13 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 
 	# GCC only
 	#set(CMAKE_CXX_FLAGS "-Wall")
-	set(CMAKE_CXX_FLAGS_DEBUG "-g2")		# Include debug information
-	set(CMAKE_CXX_FLAGS_RELEASE "-g0")		# Leave out debug information
+	#set(CMAKE_CXX_FLAGS_DEBUG "-g2")		# Include debug information
+	#set(CMAKE_CXX_FLAGS_RELEASE "-g0")		# Leave out debug information
 	set(CMAKE_CXX_FLAGS_RELEASE "-O3")		# Full optimization
 	add_compile_options(-Wno-psabi)
+	# Optimizations for Trimui Smart Pro
+	#set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -mtune=cortex-a53 -mcpu=cortex-a53")
+
 
 	# Needed under Linux to avoid link error from minizip: "relocation r_x86_64_pc32 against symbol `_length_code' can not be used when making a shared object; recompile with -fpic"
 	if (UNIX)
@@ -58,9 +64,13 @@ find_package(OpenGL REQUIRED)
 
 
 # SDL2 sources as virtual subdirectory "SDL"
-set(SDL_STATIC ON)
-set(SDL_SHARED OFF)
-add_subdirectory(${WORKSPACE_DIR}/framework/external/sdl/SDL2 SDL)
+#set(SDL_STATIC ON)
+#set(SDL_SHARED OFF)
+#add_subdirectory(${WORKSPACE_DIR}/framework/external/sdl/SDL2 SDL)
+
+# Use dynamic SDL2
+pkg_check_modules(SDL2 sdl2 REQUIRED)
+
 
 # zlib sources as virtual subdirectory "zlib"
 include_directories(${WORKSPACE_DIR}/framework/external/zlib/zlib)		# Included before add_subdirectory so that the examples will build
@@ -68,7 +78,7 @@ add_subdirectory(${WORKSPACE_DIR}/framework/external/zlib/zlib zlib)
 
 
 
-include_directories(SDL/include)
+#include_directories(SDL/include)
 include_directories(${WORKSPACE_DIR}/framework/external/ogg-vorbis/libogg/include)
 include_directories(${WORKSPACE_DIR}/framework/external/ogg-vorbis/libvorbis/include)
 include_directories(${WORKSPACE_DIR}/framework/external/ogg-vorbis/libvorbis/lib)
@@ -119,6 +129,9 @@ endif()
 
 target_link_libraries(rmxbase stdc++fs)
 target_link_libraries(rmxbase zlibstatic)
+target_link_libraries(rmxbase ${SDL2_STATIC_LIBRARIES})
+target_link_options(rmxbase PRIVATE ${SDL2_STATIC_LDLIBS_OTHER})
+target_compile_options(rmxbase PRIVATE ${SDL2_STATIC_CFLAGS})
 
 
 
@@ -130,8 +143,11 @@ file(GLOB_RECURSE RMXMEDIA_SOURCES ${WORKSPACE_DIR}/librmx/source/rmxmedia/*.cpp
 add_library(rmxmedia ${RMXMEDIA_SOURCES})
 
 target_link_libraries(rmxmedia rmxbase)
-target_link_libraries(rmxmedia SDL2-static)
-target_link_libraries(rmxmedia OpenGL::GL)
+target_link_libraries(rmxmedia ${SDL2_STATIC_LIBRARIES})
+target_link_options(rmxmedia PRIVATE ${SDL2_STATIC_LDLIBS_OTHER})
+target_compile_options(rmxmedia PRIVATE ${SDL2_STATIC_CFLAGS})
+target_link_libraries(rmxmedia GLESv2)
+#target_link_libraries(rmxmedia OpenGL::GL)
 
 
 
